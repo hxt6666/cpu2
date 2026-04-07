@@ -63,4 +63,23 @@ mv "$TMPDIR/sepolicy.rule" "$MODPATH"
 mkdir "$MODPATH/lib"
 
 ui_print "- Extracting $ARCH libraries"
-extract "$ZIPFILE" "lib/$ARCH/lib$SONAME.so" "$MODPATH/lib" true
+
+case $ARCH in
+  arm64)
+    ABI=arm64-v8a
+    ;;
+  arm)
+    ABI=armeabi-v7a
+    ;;
+  x64)
+    ABI=x86_64
+    ;;
+  x86)
+    ABI=x86
+    ;;
+  riscv64)
+    ABI=riscv64
+    ;;
+esac
+
+extract "$ZIPFILE" "lib/$ABI/lib$SONAME.so" "$MODPATH/lib" true

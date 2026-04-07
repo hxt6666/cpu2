@@ -6,7 +6,19 @@
 
 本仓库包含一个可构建的 Zygisk Next 模块示例项目。
 
-运行 gradle task `zipDebug` 生成 debug 版本的 zip 或运行 `installMagisk|KsuDebug` 以安装模块。构建完成的模块 zip 包将输出到 module/release 目录下。
+内置简单构建脚本 build.py ，使用方法：
+
+```bash
+# 生成 compile_commands.json 用于 clangd 以支持代码索引功能
+python build.py config [-a abi]
+# 构建模块 zip
+python build.py [-t release] zip
+# 构建并刷入模块 zip
+python build.py [-t release] flash [--reboot] 
+
+```
+
+构建完成的模块 zip 包将输出到 release 目录下。
 
 ### 模块声明
 
@@ -64,9 +76,18 @@ Zygisk Next 模块 API 目前仍在设计当中，具体内容请参见 [zygisk_
 
 ## English version
 
-This repository contains a buildable example project for Zygisk Next modules.
+This repository includes a simple built-in build script `build.py`. Here's how to use it:
 
-Run the Gradle task `zipDebug` to generate a debug version of the zip file, or run `installMagisk|KsuDebug` to install the module. The built module zip package will be output to the module/release directory.
+```bash
+# Generate compile_commands.json for clangd to support code indexing
+python build.py config [-a abi]
+# Build module zip
+python build.py [-t release] zip
+# Build and flash module zip
+python build.py [-t release] flash [--reboot]
+```
+
+The compiled module zip package will be output to the release directory.
 
 ### Module Declaration
 
