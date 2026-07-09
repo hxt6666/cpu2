@@ -1,1 +1,1 @@
-name=adbd companion lib/lib${moduleId}.so
+name=com.liuzh.deviceinfo libmodule.so
