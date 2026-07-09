@@ -1,6 +1,0 @@
-# 生成 compile_commands.json 用于 clangd 以支持代码索引功能
-python build.py config [-a abi]
-# 构建模块 zip
-python build.py [-t release] zip
-# 构建并刷入模块 zip
-python build.py [-t release] flash [--reboot] 
