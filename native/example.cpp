@@ -1,174 +1,79 @@
-#include <sys/mount.h>
+/* Copyright 2022-2023 John "topjohnwu" Wu
+ *
+ * Permission to use, copy, modify, and/or distribute this software for any
+ * purpose with or without fee is hereby granted.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES WITH
+ * REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY
+ * AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR ANY SPECIAL, DIRECT,
+ * INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM
+ * LOSS OF USE, DATA OR PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE OR
+ * OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
+ * PERFORMANCE OF THIS SOFTWARE.
+ */
+
+#include <cstdlib>
 #include <unistd.h>
 #include <fcntl.h>
-#include <string>
+#include <android/log.h>
 
-// 1. 将你的 Kirin 9030 数据直接硬编码进模块
-const char* KIRIN_9030_DATA = R"(Processor	: AArch64 Processor rev 0 (aarch64)
-processor	: 0
-BogoMIPS	: 2000.00
-Features	: fp asimd evtstrm aes pmull sha1 sha2 crc32 atomics fphp asimdhp cpuid asimdrdm jscvt fcma lrcpc dcpop sha3 sm3 sm4 asimddp sha512 sve asimdfhm dit uscat ilrcpc flagm ssbs sb paca pacg dcpodp flagm2 frint svei8mm svebf16 i8mm bf16 dgh bti
-CPU implementer	: 0x48
-CPU architecture: 8
-CPU variant	: 0x2
-CPU part	: 0xd24
-CPU revision	: 0
-CPU physical	: 0
+#include "zygisk.hpp"
 
-processor	: 1
-BogoMIPS	: 2000.00
-Features	: fp asimd evtstrm aes pmull sha1 sha2 crc32 atomics fphp asimdhp cpuid asimdrdm jscvt fcma lrcpc dcpop sha3 sm3 sm4 asimddp sha512 sve asimdfhm dit uscat ilrcpc flagm ssbs sb paca pacg dcpodp flagm2 frint svei8mm svebf16 i8mm bf16 dgh bti
-CPU implementer	: 0x48
-CPU architecture: 8
-CPU variant	: 0x2
-CPU part	: 0xd24
-CPU revision	: 0
-CPU physical	: 1
+using zygisk::Api;
+using zygisk::AppSpecializeArgs;
+using zygisk::ServerSpecializeArgs;
 
-processor	: 2
-BogoMIPS	: 2000.00
-Features	: fp asimd evtstrm aes pmull sha1 sha2 crc32 atomics fphp asimdhp cpuid asimdrdm jscvt fcma lrcpc dcpop sha3 sm3 sm4 asimddp sha512 sve asimdfhm dit uscat ilrcpc flagm ssbs sb paca pacg dcpodp flagm2 frint svei8mm svebf16 i8mm bf16 dgh bti
-CPU implementer	: 0x48
-CPU architecture: 8
-CPU variant	: 0x2
-CPU part	: 0xd24
-CPU revision	: 0
-CPU physical	: 2
+#define LOGD(...) __android_log_print(ANDROID_LOG_DEBUG, "MyModule", __VA_ARGS__)
 
-processor	: 3
-BogoMIPS	: 2000.00
-Features	: fp asimd evtstrm aes pmull sha1 sha2 crc32 atomics fphp asimdhp cpuid asimdrdm jscvt fcma lrcpc dcpop sha3 sm3 sm4 asimddp sha512 sve asimdfhm dit uscat ilrcpc flagm ssbs sb paca pacg dcpodp flagm2 frint svei8mm svebf16 i8mm bf16 dgh bti
-CPU implementer	: 0x48
-CPU architecture: 8
-CPU variant	: 0x2
-CPU part	: 0xd24
-CPU revision	: 0
-CPU physical	: 3
-
-processor	: 4
-BogoMIPS	: 2000.00
-Features	: fp asimd evtstrm aes pmull sha1 sha2 crc32 atomics fphp asimdhp cpuid asimdrdm jscvt fcma lrcpc dcpop sha3 sm3 sm4 asimddp sha512 sve asimdfhm dit uscat ilrcpc flagm ssbs sb paca pacg dcpodp flagm2 frint svei8mm svebf16 i8mm bf16 dgh bti
-CPU implementer	: 0x48
-CPU architecture: 8
-CPU variant	: 0x2
-CPU part	: 0xd47
-CPU revision	: 0
-CPU physical	: 4
-
-processor	: 5
-BogoMIPS	: 2000.00
-Features	: fp asimd evtstrm aes pmull sha1 sha2 crc32 atomics fphp asimdhp cpuid asimdrdm jscvt fcma lrcpc dcpop sha3 sm3 sm4 asimddp sha512 sve asimdfhm dit uscat ilrcpc flagm ssbs sb paca pacg dcpodp flagm2 frint svei8mm svebf16 i8mm bf16 dgh bti
-CPU implementer	: 0x48
-CPU architecture: 8
-CPU variant	: 0x2
-CPU part	: 0xd47
-CPU revision	: 0
-CPU physical	: 5
-
-processor	: 6
-BogoMIPS	: 2000.00
-Features	: fp asimd evtstrm aes pmull sha1 sha2 crc32 atomics fphp asimdhp cpuid asimdrdm jscvt fcma lrcpc dcpop sha3 sm3 sm4 asimddp sha512 sve asimdfhm dit uscat ilrcpc flagm ssbs sb paca pacg dcpodp flagm2 frint svei8mm svebf16 i8mm bf16 dgh bti
-CPU implementer	: 0x48
-CPU architecture: 8
-CPU variant	: 0x2
-CPU part	: 0xd47
-CPU revision	: 0
-CPU physical	: 6
-
-processor	: 7
-BogoMIPS	: 2000.00
-Features	: fp asimd evtstrm aes pmull sha1 sha2 crc32 atomics fphp asimdhp cpuid asimdrdm jscvt fcma lrcpc dcpop sha3 sm3 sm4 asimddp sha512 sve asimdfhm dit uscat ilrcpc flagm ssbs sb paca pacg dcpodp flagm2 frint svei8mm svebf16 i8mm bf16 dgh bti
-CPU implementer	: 0x48
-CPU architecture: 8
-CPU variant	: 0x2
-CPU part	: 0xd47
-CPU revision	: 0
-CPU physical	: 7
-
-processor	: 8
-BogoMIPS	: 2000.00
-Features	: fp asimd evtstrm aes pmull sha1 sha2 crc32 atomics fphp asimdhp cpuid asimdrdm jscvt fcma lrcpc dcpop sha3 sm3 sm4 asimddp sha512 sve asimdfhm dit uscat ilrcpc flagm ssbs sb paca pacg dcpodp flagm2 frint svei8mm svebf16 i8mm bf16 dgh bti
-CPU implementer	: 0x48
-CPU architecture: 8
-CPU variant	: 0x2
-CPU part	: 0xd47
-CPU revision	: 0
-CPU physical	: 8
-
-processor	: 9
-BogoMIPS	: 2000.00
-Features	: fp asimd evtstrm aes pmull sha1 sha2 crc32 atomics fphp asimdhp cpuid asimdrdm jscvt fcma lrcpc dcpop sha3 sm3 sm4 asimddp sha512 sve asimdfhm dit uscat ilrcpc flagm ssbs sb paca pacg dcpodp flagm2 frint svei8mm svebf16 i8mm bf16 dgh bti
-CPU implementer	: 0x48
-CPU architecture: 8
-CPU variant	: 0x2
-CPU part	: 0xd47
-CPU revision	: 0
-CPU physical	: 9
-
-processor	: 10
-BogoMIPS	: 2000.00
-Features	: fp asimd evtstrm aes pmull sha1 sha2 crc32 atomics fphp asimdhp cpuid asimdrdm jscvt fcma lrcpc dcpop sha3 sm3 sm4 asimddp sha512 sve asimdfhm dit uscat ilrcpc flagm ssbs sb paca pacg dcpodp flagm2 frint svei8mm svebf16 i8mm bf16 dgh bti
-CPU implementer	: 0x48
-CPU architecture: 8
-CPU variant	: 0x2
-CPU part	: 0xd47
-CPU revision	: 0
-CPU physical	: 10
-
-processor	: 11
-BogoMIPS	: 2000.00
-Features	: fp asimd evtstrm aes pmull sha1 sha2 crc32 atomics fphp asimdhp cpuid asimdrdm jscvt fcma lrcpc dcpop sha3 sm3 sm4 asimddp sha512 sve asimdfhm dit uscat ilrcpc flagm ssbs sb paca pacg dcpodp flagm2 frint svei8mm svebf16 i8mm bf16 dgh bti
-CPU implementer	: 0x48
-CPU architecture: 8
-CPU variant	: 0x2
-CPU part	: 0xd47
-CPU revision	: 0
-CPU physical	: 11
-
-processor	: 12
-BogoMIPS	: 2000.00
-Features	: fp asimd evtstrm aes pmull sha1 sha2 crc32 atomics fphp asimdhp cpuid asimdrdm jscvt fcma lrcpc dcpop sha3 sm3 sm4 asimddp sha512 sve asimdfhm dit uscat ilrcpc flagm ssbs sb paca pacg dcpodp flagm2 frint svei8mm svebf16 i8mm bf16 dgh bti
-CPU implementer	: 0x48
-CPU architecture: 8
-CPU variant	: 0x2
-CPU part	: 0xd06
-CPU revision	: 0
-CPU physical	: 12
-
-processor	: 13
-BogoMIPS	: 2000.00
-Features	: fp asimd evtstrm aes pmull sha1 sha2 crc32 atomics fphp asimdhp cpuid asimdrdm jscvt fcma lrcpc dcpop sha3 sm3 sm4 asimddp sha512 sve asimdfhm dit uscat ilrcpc flagm ssbs sb paca pacg dcpodp flagm2 frint svei8mm svebf16 i8mm bf16 dgh bti
-CPU implementer	: 0x48
-CPU architecture: 8
-CPU variant	: 0x2
-CPU part	: 0xd06
-CPU revision	: 0
-CPU physical	: 13
-
-Hardware	: HUAWEI Kirin9030
-)";
-
-void preAppSpecialize(Api *api, PreAppSpecializeArgs *args) {
-    const char *process = api->getProcessName(args); 
-    
-    // 2. 匹配你想要欺骗的游戏包名
-    if (process && (std::string(process) == "com.tencent.tmgp.pubgmhd" || std::string(process) == "com.liuzh.deviceinfo")) {
-        
-        // 3. 在游戏应用私有的临时目录下创建一个虚假文件（外部应用无权访问此目录，天然隔离）
-        std::string fake_path = "/data/data/" + std::string(process) + "/cache/.tmp_info";
-        
-        int fd = open(fake_path.c_str(), O_WRONLY | O_CREAT | O_TRUNC, 0666);
-        if (fd >= 0) {
-            // 将硬编码的麒麟9030数据写入该临时文件
-            write(fd, KIRIN_9030_DATA, strlen(KIRIN_9030_DATA));
-            close(fd);
-            
-            // 4. 核心魔术：使用 MS_BIND 将这个刚写好的临时文件挂载到系统的 /proc/cpuinfo 上
-            if (mount(fake_path.c_str(), "/proc/cpuinfo", NULL, MS_BIND, NULL) == 0) {
-                // 5. 挂载成功后，立刻拔树寻根！把这个临时文件删掉（unlink）
-                // 此时 /proc/cpuinfo 已经持有了文件内容，磁盘上的 .tmp_info 彻底消失，无迹可寻
-                unlink(fake_path.c_str());
-            }
-        }
+class MyModule : public zygisk::ModuleBase {
+public:
+    void onLoad(Api *api, JNIEnv *env) override {
+        this->api = api;
+        this->env = env;
     }
+
+    void preAppSpecialize(AppSpecializeArgs *args) override {
+        // Use JNI to fetch our process name
+        const char *process = env->GetStringUTFChars(args->nice_name, nullptr);
+        preSpecialize(process);
+        env->ReleaseStringUTFChars(args->nice_name, process);
+    }
+
+    void preServerSpecialize(ServerSpecializeArgs *args) override {
+        preSpecialize("system_server");
+    }
+
+private:
+    Api *api;
+    JNIEnv *env;
+
+    void preSpecialize(const char *process) {
+        // Demonstrate connecting to to companion process
+        // We ask the companion for a random number
+        unsigned r = 0;
+        int fd = api->connectCompanion();
+        read(fd, &r, sizeof(r));
+        close(fd);
+        LOGD("process=[%s], r=[%u]\n", process, r);
+
+        // Since we do not hook any functions, we should let Zygisk dlclose ourselves
+        api->setOption(zygisk::Option::DLCLOSE_MODULE_LIBRARY);
+    }
+
+};
+
+static int urandom = -1;
+
+static void companion_handler(int i) {
+    if (urandom < 0) {
+        urandom = open("/dev/urandom", O_RDONLY);
+    }
+    unsigned r;
+    read(urandom, &r, sizeof(r));
+    LOGD("companion r=[%u]\n", r);
+    write(i, &r, sizeof(r));
 }
+
+// Register our module class and the companion handler function
+REGISTER_ZYGISK_MODULE(MyModule)
+REGISTER_ZYGISK_COMPANION(companion_handler)
