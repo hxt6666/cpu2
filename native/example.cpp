@@ -1,144 +1,174 @@
-#include <cinttypes>
-#include <cstdlib>
-#include <cstring>
+#include <sys/mount.h>
 #include <unistd.h>
 #include <fcntl.h>
-#include <android/log.h>
-#include <cstdarg>
-#include <link.h>
-#include <sys/auxv.h>
-#include <dlfcn.h>
-#include <fcntl.h>
-#include <vector>
+#include <string>
 
-#include "zygisk_next_api.h"
+// 1. 将你的 Kirin 9030 数据直接硬编码进模块
+const char* KIRIN_9030_DATA = R"(Processor	: AArch64 Processor rev 0 (aarch64)
+processor	: 0
+BogoMIPS	: 2000.00
+Features	: fp asimd evtstrm aes pmull sha1 sha2 crc32 atomics fphp asimdhp cpuid asimdrdm jscvt fcma lrcpc dcpop sha3 sm3 sm4 asimddp sha512 sve asimdfhm dit uscat ilrcpc flagm ssbs sb paca pacg dcpodp flagm2 frint svei8mm svebf16 i8mm bf16 dgh bti
+CPU implementer	: 0x48
+CPU architecture: 8
+CPU variant	: 0x2
+CPU part	: 0xd24
+CPU revision	: 0
+CPU physical	: 0
 
-// An example module which inject to adbd and hook some functions
+processor	: 1
+BogoMIPS	: 2000.00
+Features	: fp asimd evtstrm aes pmull sha1 sha2 crc32 atomics fphp asimdhp cpuid asimdrdm jscvt fcma lrcpc dcpop sha3 sm3 sm4 asimddp sha512 sve asimdfhm dit uscat ilrcpc flagm ssbs sb paca pacg dcpodp flagm2 frint svei8mm svebf16 i8mm bf16 dgh bti
+CPU implementer	: 0x48
+CPU architecture: 8
+CPU variant	: 0x2
+CPU part	: 0xd24
+CPU revision	: 0
+CPU physical	: 1
 
-#define LOGI(...) __android_log_print(ANDROID_LOG_INFO, "ZnModuleTemplate", __VA_ARGS__)
+processor	: 2
+BogoMIPS	: 2000.00
+Features	: fp asimd evtstrm aes pmull sha1 sha2 crc32 atomics fphp asimdhp cpuid asimdrdm jscvt fcma lrcpc dcpop sha3 sm3 sm4 asimddp sha512 sve asimdfhm dit uscat ilrcpc flagm ssbs sb paca pacg dcpodp flagm2 frint svei8mm svebf16 i8mm bf16 dgh bti
+CPU implementer	: 0x48
+CPU architecture: 8
+CPU variant	: 0x2
+CPU part	: 0xd24
+CPU revision	: 0
+CPU physical	: 2
 
-static ZygiskNextAPI api_table;
-void* handle;
+processor	: 3
+BogoMIPS	: 2000.00
+Features	: fp asimd evtstrm aes pmull sha1 sha2 crc32 atomics fphp asimdhp cpuid asimdrdm jscvt fcma lrcpc dcpop sha3 sm3 sm4 asimddp sha512 sve asimdfhm dit uscat ilrcpc flagm ssbs sb paca pacg dcpodp flagm2 frint svei8mm svebf16 i8mm bf16 dgh bti
+CPU implementer	: 0x48
+CPU architecture: 8
+CPU variant	: 0x2
+CPU part	: 0xd24
+CPU revision	: 0
+CPU physical	: 3
 
-// print the arguments of programs that the adbd exec-ed
-static int my_execle_plt(const char *pathname, char *arg, ...) {
-    va_list va;
-    std::vector<char*> args;
-    LOGI("exec pathname=%s", pathname);
-    args.push_back(arg);
-    va_start(va, arg);
-    char* next = arg;
-    int i = 0;
-    while (next) {
-        LOGI("exec arg %d %s", i, next);
-        i++;
-        next = va_arg(va, char*);
-        args.push_back(next);
-    };
-    auto envp = va_arg(va, char* const*);
-    return execve(pathname, args.data(), envp);
-}
+processor	: 4
+BogoMIPS	: 2000.00
+Features	: fp asimd evtstrm aes pmull sha1 sha2 crc32 atomics fphp asimdhp cpuid asimdrdm jscvt fcma lrcpc dcpop sha3 sm3 sm4 asimddp sha512 sve asimdfhm dit uscat ilrcpc flagm ssbs sb paca pacg dcpodp flagm2 frint svei8mm svebf16 i8mm bf16 dgh bti
+CPU implementer	: 0x48
+CPU architecture: 8
+CPU variant	: 0x2
+CPU part	: 0xd47
+CPU revision	: 0
+CPU physical	: 4
 
-// backup of old __openat function
-static int (*old_openat)(int fd, const char* pathname, int flag, int mode) = nullptr;
-// our replacement for __openat function
-static int my_openat(int fd, const char* pathname, int flag, int mode) {
-    auto r = old_openat(fd, pathname, flag, mode);
-    int e = errno;
+processor	: 5
+BogoMIPS	: 2000.00
+Features	: fp asimd evtstrm aes pmull sha1 sha2 crc32 atomics fphp asimdhp cpuid asimdrdm jscvt fcma lrcpc dcpop sha3 sm3 sm4 asimddp sha512 sve asimdfhm dit uscat ilrcpc flagm ssbs sb paca pacg dcpodp flagm2 frint svei8mm svebf16 i8mm bf16 dgh bti
+CPU implementer	: 0x48
+CPU architecture: 8
+CPU variant	: 0x2
+CPU part	: 0xd47
+CPU revision	: 0
+CPU physical	: 5
 
-    auto cp_fd = api_table.connectCompanion(handle);
-    int sz = strlen(pathname);
-    TEMP_FAILURE_RETRY(write(cp_fd, &sz, sizeof(sz)));
-    TEMP_FAILURE_RETRY(write(cp_fd, pathname, sz));
+processor	: 6
+BogoMIPS	: 2000.00
+Features	: fp asimd evtstrm aes pmull sha1 sha2 crc32 atomics fphp asimdhp cpuid asimdrdm jscvt fcma lrcpc dcpop sha3 sm3 sm4 asimddp sha512 sve asimdfhm dit uscat ilrcpc flagm ssbs sb paca pacg dcpodp flagm2 frint svei8mm svebf16 i8mm bf16 dgh bti
+CPU implementer	: 0x48
+CPU architecture: 8
+CPU variant	: 0x2
+CPU part	: 0xd47
+CPU revision	: 0
+CPU physical	: 6
 
-    errno = e;
-    return r;
-}
+processor	: 7
+BogoMIPS	: 2000.00
+Features	: fp asimd evtstrm aes pmull sha1 sha2 crc32 atomics fphp asimdhp cpuid asimdrdm jscvt fcma lrcpc dcpop sha3 sm3 sm4 asimddp sha512 sve asimdfhm dit uscat ilrcpc flagm ssbs sb paca pacg dcpodp flagm2 frint svei8mm svebf16 i8mm bf16 dgh bti
+CPU implementer	: 0x48
+CPU architecture: 8
+CPU variant	: 0x2
+CPU part	: 0xd47
+CPU revision	: 0
+CPU physical	: 7
 
-// this function will be called after all of the main executable's needed libraries are loaded
-// and before the entry of the main executable is called
-void onModuleLoaded(void* self_handle, const struct ZygiskNextAPI* api) {
-    // You need to copy the api table if you want to use it after this callback finished
-    memcpy(&api_table, api, sizeof(struct ZygiskNextAPI));
-    LOGI("module loaded");
-    handle = self_handle;
+processor	: 8
+BogoMIPS	: 2000.00
+Features	: fp asimd evtstrm aes pmull sha1 sha2 crc32 atomics fphp asimdhp cpuid asimdrdm jscvt fcma lrcpc dcpop sha3 sm3 sm4 asimddp sha512 sve asimdfhm dit uscat ilrcpc flagm ssbs sb paca pacg dcpodp flagm2 frint svei8mm svebf16 i8mm bf16 dgh bti
+CPU implementer	: 0x48
+CPU architecture: 8
+CPU variant	: 0x2
+CPU part	: 0xd47
+CPU revision	: 0
+CPU physical	: 8
 
-    // get base address of adbd
-    void* base = nullptr;
-    dl_iterate_phdr([](struct dl_phdr_info* info, size_t sz, void* data) -> int {
-        // LOGI("%s base %" PRIxPTR, info->dlpi_name, info->dlpi_addr);
-        auto linker_base = (uintptr_t) getauxval(AT_BASE);
-        // LOGI("linker base=%" PRIxPTR, linker_base);
-        if (linker_base == info->dlpi_addr)
-            return 0;
-        *reinterpret_cast<void**>(data) = (void*) info->dlpi_addr;
-        return 1;
-    }, &base);
+processor	: 9
+BogoMIPS	: 2000.00
+Features	: fp asimd evtstrm aes pmull sha1 sha2 crc32 atomics fphp asimdhp cpuid asimdrdm jscvt fcma lrcpc dcpop sha3 sm3 sm4 asimddp sha512 sve asimdfhm dit uscat ilrcpc flagm ssbs sb paca pacg dcpodp flagm2 frint svei8mm svebf16 i8mm bf16 dgh bti
+CPU implementer	: 0x48
+CPU architecture: 8
+CPU variant	: 0x2
+CPU part	: 0xd47
+CPU revision	: 0
+CPU physical	: 9
 
-    LOGI("adbd base %p", base);
+processor	: 10
+BogoMIPS	: 2000.00
+Features	: fp asimd evtstrm aes pmull sha1 sha2 crc32 atomics fphp asimdhp cpuid asimdrdm jscvt fcma lrcpc dcpop sha3 sm3 sm4 asimddp sha512 sve asimdfhm dit uscat ilrcpc flagm ssbs sb paca pacg dcpodp flagm2 frint svei8mm svebf16 i8mm bf16 dgh bti
+CPU implementer	: 0x48
+CPU architecture: 8
+CPU variant	: 0x2
+CPU part	: 0xd47
+CPU revision	: 0
+CPU physical	: 10
 
-    // plt hook adbd's execle function
-    if (api_table.pltHook(base, "execle", (void*) my_execle_plt, nullptr) == ZN_SUCCESS) {
-        LOGI("plt hook success");
-    } else {
-        LOGI("plt hook failed");
+processor	: 11
+BogoMIPS	: 2000.00
+Features	: fp asimd evtstrm aes pmull sha1 sha2 crc32 atomics fphp asimdhp cpuid asimdrdm jscvt fcma lrcpc dcpop sha3 sm3 sm4 asimddp sha512 sve asimdfhm dit uscat ilrcpc flagm ssbs sb paca pacg dcpodp flagm2 frint svei8mm svebf16 i8mm bf16 dgh bti
+CPU implementer	: 0x48
+CPU architecture: 8
+CPU variant	: 0x2
+CPU part	: 0xd47
+CPU revision	: 0
+CPU physical	: 11
+
+processor	: 12
+BogoMIPS	: 2000.00
+Features	: fp asimd evtstrm aes pmull sha1 sha2 crc32 atomics fphp asimdhp cpuid asimdrdm jscvt fcma lrcpc dcpop sha3 sm3 sm4 asimddp sha512 sve asimdfhm dit uscat ilrcpc flagm ssbs sb paca pacg dcpodp flagm2 frint svei8mm svebf16 i8mm bf16 dgh bti
+CPU implementer	: 0x48
+CPU architecture: 8
+CPU variant	: 0x2
+CPU part	: 0xd06
+CPU revision	: 0
+CPU physical	: 12
+
+processor	: 13
+BogoMIPS	: 2000.00
+Features	: fp asimd evtstrm aes pmull sha1 sha2 crc32 atomics fphp asimdhp cpuid asimdrdm jscvt fcma lrcpc dcpop sha3 sm3 sm4 asimddp sha512 sve asimdfhm dit uscat ilrcpc flagm ssbs sb paca pacg dcpodp flagm2 frint svei8mm svebf16 i8mm bf16 dgh bti
+CPU implementer	: 0x48
+CPU architecture: 8
+CPU variant	: 0x2
+CPU part	: 0xd06
+CPU revision	: 0
+CPU physical	: 13
+
+Hardware	: HUAWEI Kirin9030
+)";
+
+void preAppSpecialize(Api *api, PreAppSpecializeArgs *args) {
+    const char *process = api->getProcessName(args); 
+    
+    // 2. 匹配你想要欺骗的游戏包名
+    if (process && (std::string(process) == "com.tencent.tmgp.pubgmhd" || std::string(process) == "com.liuzh.deviceinfo")) {
+        
+        // 3. 在游戏应用私有的临时目录下创建一个虚假文件（外部应用无权访问此目录，天然隔离）
+        std::string fake_path = "/data/data/" + std::string(process) + "/cache/.tmp_info";
+        
+        int fd = open(fake_path.c_str(), O_WRONLY | O_CREAT | O_TRUNC, 0666);
+        if (fd >= 0) {
+            // 将硬编码的麒麟9030数据写入该临时文件
+            write(fd, KIRIN_9030_DATA, strlen(KIRIN_9030_DATA));
+            close(fd);
+            
+            // 4. 核心魔术：使用 MS_BIND 将这个刚写好的临时文件挂载到系统的 /proc/cpuinfo 上
+            if (mount(fake_path.c_str(), "/proc/cpuinfo", NULL, MS_BIND, NULL) == 0) {
+                // 5. 挂载成功后，立刻拔树寻根！把这个临时文件删掉（unlink）
+                // 此时 /proc/cpuinfo 已经持有了文件内容，磁盘上的 .tmp_info 彻底消失，无迹可寻
+                unlink(fake_path.c_str());
+            }
+        }
     }
-
-    // inline hook libc's __open function
-    auto resolver = api_table.newSymbolResolver("libc.so", nullptr);
-    if (!resolver) {
-        LOGI("create resolver failed");
-        return;
-    }
-
-    LOGI("libc base %p", api_table.getBaseAddress(resolver));
-
-    size_t sz;
-
-    auto addr = api_table.symbolLookup(resolver, "__openat", false, &sz);
-
-    api_table.freeSymbolResolver(resolver);
-
-    if (addr == nullptr) {
-        LOGI("failed to find __openat");
-        return;
-    }
-
-    LOGI("__openat addr %p sz=%zu", addr, sz);
-
-    if (api_table.inlineHook(addr, (void *) my_openat, (void**) &old_openat) == ZN_SUCCESS) {
-        LOGI("inline hook success");
-    } else {
-        LOGI("inline hook failed");
-    }
 }
-
-// declaration of the zygisk next module
-__attribute__((visibility("default"), unused))
-struct ZygiskNextModule zn_module = {
-        .target_api_version = ZYGISK_NEXT_API_VERSION_1,
-        .onModuleLoaded = onModuleLoaded
-};
-
-static void onCompanionLoaded() {
-    LOGI("companion loaded");
-}
-
-static void onModuleConnected(int fd) {
-    int sz;
-    TEMP_FAILURE_RETRY(read(fd, &sz, sizeof(sz)));
-    if (sz > 1024 || sz < 0) return;
-    char buf[sz + 1];
-    TEMP_FAILURE_RETRY(read(fd, &buf, sz));
-    buf[sz] = 0;
-    LOGI("remote opened: %s", buf);
-}
-
-__attribute__((visibility("default"), unused))
-struct ZygiskNextCompanionModule zn_companion_module = {
-        .target_api_version = ZYGISK_NEXT_API_VERSION_1,
-        .onCompanionLoaded = onCompanionLoaded,
-        .onModuleConnected = onModuleConnected,
-};
-
-
