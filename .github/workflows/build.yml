@@ -3,7 +3,9 @@ name: Build Zygisk Module
 on:
   workflow_dispatch:
   push:
-    branches:
+    branches
+
+:
       - main
 
 jobs:
@@ -22,16 +24,33 @@ jobs:
       - name: Setup Android SDK
         uses: android-actions/setup-android@v3
 
-      - name: Install NDK 29
+      - name: Install NDK
         run: |
-          yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --install "ndk;29.0.14206865"
+          export ANDROID_HOME="$HOME/android-sdk"
+          export ANDROID_SDK_ROOT="$ANDROID_HOME"
+          export PATH="$ANDROID_HOME/cmdline-tools/latest/bin:$ANDROID_HOME/platform-tools:$PATH"
+          
+          echo "=== Installing NDK 29.0.14206865 ==="
+          sdkmanager --install "ndk;29.0.14206865" <<< "y"
+          
+          echo "=== Checking installed NDKs ==="
+          sdkmanager --list_installed | grep ndk
 
       - name: Build Module
         run: |
+          export ANDROID_HOME="$HOME/android-sdk"export ANDROID_SDK_ROOT="$ANDROID_HOME"
+          export ANDROID_NDK_HOME="$ANDROID_HOME/ndk/29.0.14206865"
+          
+          echo "=== ANDROID_HOME: $ANDROID_HOME ==="
+          echo "=== ANDROID_NDK_HOME: $ANDROID_NDK_HOME ==="
+          echo "=== NDK contents ==="
+          ls -la "$ANDROID_NDK_HOME/" 2>/dev/null || echo "NDK not found at expected path!"
+          
           python build.py -t release zip
         env:
           ANDROID_HOME: ${{ env.ANDROID_HOME }}
-          ANDROID_NDK_HOME: ${{ env.ANDROID_HOME }}/ndk/29.0.14206865
+          ANDROID_SDK_ROOT: ${{ env.ANDROID_SDK_ROOT }}
+          ANDROID_NDK_HOME: ${{ env.ANDROID_NDK_HOME }}
 
       - name: Upload Artifact
         uses: actions/upload-artifact@v4
